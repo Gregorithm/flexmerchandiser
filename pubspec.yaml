@@ -1,0 +1,72 @@
+name: flexmerchandiser
+description: "A flexmerchandiser app."
+
+publish_to: 'none' 
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  flutter_native_splash: ^2.2.11
+  get: ^4.6.1
+  flutter_otp_text_field: ^1.1.0+2
+  iconsax: ^0.0.8
+  http: ^1.2.2
+  intl: ^0.19.0
+  percent_indicator: ^4.2.2
+  session_manager: ^0.0.4
+  shared_preferences: ^2.0.15
+  video_player: ^2.5.1
+  flutter_swiper_view: ^1.1.8
+  swipe_deck: ^1.0.2
+  dio: ^5.7.0
+  dio_adapter: ^2.1.2
+  url_launcher: ^6.3.1
+  permission_handler: ^11.3.1
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.14.2
+  mockito: ^5.4.0
+  integration_test:
+    sdk: flutter
+  mocktail: ^1.0.4
+
+  
+  flutter_lints: ^5.0.0
+
+
+flutter:
+
+  
+  uses-material-design: true
+  fonts:
+    - family: Montserrat
+      fonts:
+        - asset: assets/fonts/Montserrat/Montserrat-Medium.ttf
+        - asset: assets/fonts/Montserrat/Montserrat-Bold.ttf
+        - asset: assets/fonts/Montserrat/Montserrat-Regular.ttf
+          weight: 700
+
+  assets:
+    - assets/images/
+    - assets/images/login.webm
+    - assets/images/onboarding.png
+    - assets/images/otpverification.webm
+    - assets/images/happyafricanlogin.png
+    - assets/icon/userprofile.png
+    - assets/images/dashboardimages/Naivas.png
+    - assets/images/dashboardimages/Quickmart.png
+    - assets/images/dashboardimages/Moko.png
+    - assets/images/dashboardimages/Hotpoint.png
+    - assets/images/dashboardimages/Car-and-General.png
+    - assets/logos/logo.png
+
+  
