@@ -202,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Center(
                 child: TextButton(
                   onPressed: () {
-                    Get.to(() => const SignupScreen());
+                    
                   },
                   child: Text(
                     "Don't have an account? Sign Up",
