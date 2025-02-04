@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'package:flexmerchandiser/features/controllers/usercontroller.dart';
 import 'package:flexmerchandiser/features/screens/appbarhome.dart';
 import 'package:flexmerchandiser/features/screens/outletdetailspage.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
@@ -18,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> outlets = [];
   bool isLoading = true;
   int outletsCount = 0; // Variable to store the number of outlets
+  final UserController userController = Get.find <UserController>();
 
   @override
   void initState() {
@@ -25,43 +29,48 @@ class _HomeScreenState extends State<HomeScreen> {
     fetchOutlets();
   }
 
- Future<void> fetchOutlets() async {
-  const String userId = "373480"; // Replace with dynamic user ID after login
-  const String url = "https://bookings.flexpay.co.ke/api/merchandizer/outlets";
+  Future<void> fetchOutlets() async {
+    final String userId = userController.userId.value; // Get the user ID from the controller
+    //const  String userId = "309731"; // Replace with dynamic user ID after login
+    if (userId .isEmpty){
+      print("User ID is empty");
+    }
+    const String url =
+        "https://bookings.flexpay.co.ke/api/merchandizer/outlets";
 
-  try {
-    final response = await http.post(
-      Uri.parse(url),
-      body: {"user_id": userId},
-    );
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        body: {"user_id": userId},
+      );
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      if (data["success"]) {
-        if (mounted) {
-          setState(() {
-            outlets = data["data"];
-            outletsCount = outlets.length; // Set the number of outlets
-            isLoading = false;
-          });
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data["success"]) {
+          if (mounted) {
+            setState(() {
+              outlets = data["data"];
+              outletsCount = outlets.length; // Set the number of outlets
+              isLoading = false;
+            });
+          }
+        } else {
+          throw Exception("Failed to load outlets.");
         }
       } else {
-        throw Exception("Failed to load outlets.");
+        throw Exception("Server error: ${response.statusCode}");
       }
-    } else {
-      throw Exception("Server error: ${response.statusCode}");
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching outlets: $e")),
+      );
     }
-  } catch (e) {
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-      });
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error fetching outlets: $e")),
-    );
   }
-}
 
   // Function to map outlet name to image URL
   String getOutletImage(String outletName) {
@@ -81,9 +90,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: widget.isDarkModeOn ? Colors.black : Colors.white,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(490.0),
-        child: appBarHome(context, outletsCount, outlets) // Assuming appBarHome is defined
-      ),
+          preferredSize: const Size.fromHeight(490.0),
+          child: appBarHome(
+              context, outletsCount, outlets) // Assuming appBarHome is defined
+          ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : outlets.isEmpty
@@ -139,14 +149,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           itemCount: outlets.length,
                           itemBuilder: (context, index) {
                             final outlet = outlets[index];
-                            String imageUrl = getOutletImage(outlet["outlet_name"]);
+                            String imageUrl =
+                                getOutletImage(outlet["outlet_name"]);
 
                             return _buildCategoryCard(
                               context,
                               title: outlet["outlet_name"],
                               subtitle:
                                   outlet["location_name"] ?? "Tap to view",
-                              backgroundImage: imageUrl, // Replace with a dynamic image URL if available
+                              backgroundImage:
+                                  imageUrl, // Replace with a dynamic image URL if available
                               outletId: outlet["id"].toString(),
                             );
                           },
@@ -201,9 +213,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     subtitle,
                     style: GoogleFonts.montserrat(
                       fontSize: 14,
-                      color: widget.isDarkModeOn
-                          ? Colors.white60
-                          : Colors.white54,
+                      color:
+                          widget.isDarkModeOn ? Colors.white60 : Colors.white54,
                     ),
                   ),
                 ],

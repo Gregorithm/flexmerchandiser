@@ -1,3 +1,4 @@
+import 'package:flexmerchandiser/features/controllers/usercontroller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -5,7 +6,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
-
 
 class OutletDetailsPage extends StatefulWidget {
   final String outletId;
@@ -20,6 +20,7 @@ class _OutletDetailsPageState extends State<OutletDetailsPage> {
   List<dynamic> outletDetails = [];
   List<dynamic> filteredDetails = [];
   bool isLoading = true;
+  final UserController userController = Get.find<UserController>(); // Injecting the UserController
   final TextEditingController _searchController = TextEditingController();
   final List<String> statusOptions = [
     "NOT CALLED",
@@ -50,7 +51,7 @@ class _OutletDetailsPageState extends State<OutletDetailsPage> {
     const String url =
         "https://bookings.flexpay.co.ke/api/merchandizer/customers";
     final Map<String, dynamic> requestBody = {
-      "user_id": 309731,
+      "user_id": userController.userId.value,
       "outlet_id": int.parse(widget.outletId),
     };
 
@@ -166,15 +167,14 @@ class _OutletDetailsPageState extends State<OutletDetailsPage> {
     }
   }
 
-Future<void> _makePhoneCall(String phoneNumber) async {
-  final Uri url = Uri(scheme: 'tel', path: phoneNumber);
-  if (await canLaunch(url.toString())) {
-    await launch(url.toString());
-  } else {
-    throw 'Could not launch dialer with number $phoneNumber';
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri url = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunch(url.toString())) {
+      await launch(url.toString());
+    } else {
+      throw 'Could not launch dialer with number $phoneNumber';
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -279,7 +279,7 @@ Future<void> _makePhoneCall(String phoneNumber) async {
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
-              controller: _searchController, 
+              controller: _searchController,
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: "Search for phone number here",
@@ -383,6 +383,12 @@ Future<void> _makePhoneCall(String phoneNumber) async {
       value: statusOptions.contains(customer["status"])
           ? customer["status"]
           : statusOptions[0],
+      dropdownColor: Colors.white, // Set dropdown background to white
+      style: GoogleFonts.montserrat(
+        // Ensure selected item text is black
+        fontSize: screenWidth * 0.035,
+        color: Colors.black,
+      ),
       items: statusOptions.map((String status) {
         return DropdownMenuItem<String>(
           value: status,
@@ -390,39 +396,39 @@ Future<void> _makePhoneCall(String phoneNumber) async {
             status,
             style: GoogleFonts.montserrat(
               fontSize: screenWidth * 0.035,
-              color: Colors.black,
+              color: Colors.black, // Ensure text inside dropdown is black
             ),
           ),
         );
       }).toList(),
       onChanged: (newStatus) async {
-  if (newStatus != null) {
-    setState(() {
-      customer["status"] = newStatus; // Update UI immediately
-    });
+        if (newStatus != null) {
+          setState(() {
+            customer["status"] = newStatus; // Update UI immediately
+          });
 
-    try {
-      // Call API for the specific customer
-      await updateCustomerStatus(customer["id"], newStatus);
+          try {
+            // Call API for the specific customer
+            await updateCustomerStatus(customer["id"], newStatus);
 
-      // Show success feedback
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Status updated to $newStatus successfully!"),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      // Handle failure feedback
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to update status. Please try again."),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-},
+            // Show success feedback
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Status updated to $newStatus successfully!"),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } catch (e) {
+            // Handle failure feedback
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Failed to update status. Please try again."),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      },
     );
   }
 

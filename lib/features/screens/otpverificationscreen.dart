@@ -18,7 +18,7 @@ class OTPScreen extends StatefulWidget {
 }
 
 class _OTPScreenState extends State<OTPScreen> {
-  final UserController userController = Get.put(UserController());
+  final UserController userController = Get.find<UserController>();
   final List<TextEditingController> _controllers =
       List.generate(4, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
@@ -50,6 +50,7 @@ class _OTPScreenState extends State<OTPScreen> {
 
     setState(() {
       _isLoading = true;
+      _otp = _controllers.map((c) => c.text).join();
     });
 
     final url = Uri.parse(
@@ -68,6 +69,7 @@ class _OTPScreenState extends State<OTPScreen> {
       if (response.statusCode == 200 && responseData['success'] == true) {
         final userId = responseData['data']['user']['id'];
         final token = responseData['data']['token'];
+
 
         userController.phoneNumber.value = widget.phoneNumber;
         userController.setUserId(userId.toString());
@@ -96,7 +98,7 @@ class _OTPScreenState extends State<OTPScreen> {
     _videoController.addListener(() {
       if (_videoController.value.position >= _videoController.value.duration) {
         _videoController.removeListener(() {});
-        Get.offAll(() => HomeScreen(isDarkModeOn: false));
+        Get.offAll(() => HomeScreen(isDarkModeOn: false,));
       }
     });
   }

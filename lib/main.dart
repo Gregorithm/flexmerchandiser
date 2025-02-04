@@ -1,3 +1,4 @@
+import 'package:flexmerchandiser/features/controllers/usercontroller.dart';
 import 'package:flexmerchandiser/features/screens/intropage.dart';
 import 'package:flexmerchandiser/features/screens/loginscreen.dart';
 import 'package:flexmerchandiser/features/screens/splashscreen.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 void main() {
+  Get.put(UserController()); // Initialize the UserController 
   runApp(const FlexMerchandiserApp());
 }
 
