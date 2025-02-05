@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:flexmerchandiser/features/controllers/authcontroller.dart';
 import 'package:flexmerchandiser/features/controllers/usercontroller.dart';
 import 'package:flexmerchandiser/features/screens/homescreen.dart';
+import 'package:flexmerchandiser/features/screens/loginscreen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -67,15 +69,22 @@ class _OTPScreenState extends State<OTPScreen> {
       final responseData = jsonDecode(response.body);
 
       if (response.statusCode == 200 && responseData['success'] == true) {
-        final userId = responseData['data']['user']['id'];
+        final userId = responseData['data']['user']['id'].toString();
         final token = responseData['data']['token'];
 
-
         userController.phoneNumber.value = widget.phoneNumber;
-        userController.setUserId(userId.toString());
-        userController.loginUser(token);
 
-        _playSuccessVideo();
+        //SET THE userId 
+        userController.setUserId(userId.toString());
+        log('User ID: $userId, Token: $token');
+        final authController = Get.find<AuthController>();
+        await authController.loginUser(token);
+
+        if (authController.isAuthenticated) {
+          _playSuccessVideo();
+        } else {
+          Get.offAll(LoginScreen());
+        }
       } else {
         _showErrorDialog("Invalid OTP. Please try again.");
         setState(() {
@@ -98,7 +107,9 @@ class _OTPScreenState extends State<OTPScreen> {
     _videoController.addListener(() {
       if (_videoController.value.position >= _videoController.value.duration) {
         _videoController.removeListener(() {});
-        Get.offAll(() => HomeScreen(isDarkModeOn: false,));
+        Get.offAll(() => HomeScreen(
+              isDarkModeOn: false,
+            ));
       }
     });
   }
@@ -134,13 +145,13 @@ class _OTPScreenState extends State<OTPScreen> {
       if (response.statusCode == 200 && responseData['success'] == true) {
         log("OTP resent to ${widget.phoneNumber}");
 
-      // Clear the input fields
-      for (var controller in _controllers) {
-        controller.clear();
-      }
-      setState(() {
-        _otp = ''; // Reset the OTP string as well
-      });
+        // Clear the input fields
+        for (var controller in _controllers) {
+          controller.clear();
+        }
+        setState(() {
+          _otp = ''; // Reset the OTP string as well
+        });
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("OTP resent successfully")),

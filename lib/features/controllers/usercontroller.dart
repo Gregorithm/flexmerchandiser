@@ -1,32 +1,29 @@
+import 'dart:developer';
+
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class UserController extends GetxController {
   RxString userId = ''.obs;
-  RxString authToken = ''.obs;
   RxString phoneNumber = ''.obs;
 
-  void setUserId(String id) {
+  Future<void> setUserId(String id) async {
     userId.value = id;
+
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_id', id);
+
+    //ensure the stored user id is stored properly
+    final storedUserId = prefs.getString('user_id');
+    log('Stored user id in shared preferences is: $storedUserId');
   }
 
-  void setAuthToken(String token) {
-    authToken.value = token;
+  Future<void> loadUserId() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    userId.value = await prefs.getString('user_id') ?? '';
+
+    log('User ID loaded: ${userId.value}');
   }
 
-// Method to set the token
-  void loginUser(String userToken) {
-    authToken.value = userToken;
-  }
-
-  
-  String getUserId() {
-    return userId.value;
-  }
-
-  String getAuthToken() {
-    return authToken.value;
-  }
+  bool get isAuthenticated => userId.value.isNotEmpty;
 }
-
-  
-

@@ -1,3 +1,6 @@
+import 'dart:developer';
+
+import 'package:flexmerchandiser/features/controllers/authcontroller.dart';
 import 'package:flexmerchandiser/features/controllers/usercontroller.dart';
 import 'package:flexmerchandiser/features/screens/intropage.dart';
 import 'package:flexmerchandiser/features/screens/loginscreen.dart';
@@ -7,8 +10,25 @@ import 'package:flexmerchandiser/util/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-void main() {
-  Get.put(UserController()); // Initialize the UserController 
+void main() async {
+  Get.put(UserController()); // Initialize the UserController
+  final authController = Get.put(AuthController());
+  await authController.loadToken();
+  final userController = Get.put(UserController());
+  await userController.loadUserId();
+
+  if (authController.isAuthenticated) {
+    log('user is authenticated with token: ${authController.token.value}');
+  } else {
+    log('User is not authenticated, prompt for login');
+  }
+
+  if (userController.isAuthenticated) {
+    log('User is authenticated with user ID: ${userController.userId.value}');
+  } else {
+    log('UserId is not stored in shared preferences, prompt for login');
+  }
+
   runApp(const FlexMerchandiserApp());
 }
 
@@ -21,14 +41,16 @@ class FlexMerchandiserApp extends StatelessWidget {
       builder: (context, constraints) {
         return OrientationBuilder(
           builder: (context, orientation) {
-            DeviceUtil.init(context); // Initialize DeviceUtil for screen utilities
+            DeviceUtil.init(
+                context); // Initialize DeviceUtil for screen utilities
 
             // Determine the screen width and height
             double screenWidth = constraints.maxWidth;
             double screenHeight = constraints.maxHeight;
 
             // Log screen dimensions for debugging
-            debugPrint("Screen Width: $screenWidth, Screen Height: $screenHeight");
+            debugPrint(
+                "Screen Width: $screenWidth, Screen Height: $screenHeight");
 
             return GetMaterialApp(
               debugShowCheckedModeBanner: false, // Remove debug banner

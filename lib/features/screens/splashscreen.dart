@@ -1,5 +1,11 @@
 import 'dart:async';
+import 'package:flexmerchandiser/features/controllers/authcontroller.dart';
+import 'package:flexmerchandiser/features/controllers/usercontroller.dart';
+import 'package:flexmerchandiser/features/screens/homescreen.dart';
+import 'package:flexmerchandiser/features/screens/intropage.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -8,7 +14,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -24,10 +31,20 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
 
-    // Navigate after the animation or delay
-    Timer(const Duration(seconds: 7), () {
-      Navigator.pushReplacementNamed(context, '/onboarding'); // Redirect to login
-    });
+    // Navigate after the animation or delay based on the auth status
+    Timer(const Duration(seconds: 7),
+        _navigateBasedOnAuthStatus); // Redirect based on auth status
+  }
+
+  void _navigateBasedOnAuthStatus() {
+    final authController = Get.find<AuthController>();
+    final userController = Get.find<UserController>();
+
+    if (authController.isAuthenticated && userController.isAuthenticated) {
+      Get.offAll(() => HomeScreen(isDarkModeOn: false,));
+    } else {
+      Get.offAll(() => OnboardingScreen());
+    }
   }
 
   @override
