@@ -33,12 +33,17 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_launcher_icons: ^0.14.2
   mockito: ^5.4.0
   integration_test:
     sdk: flutter
-  mocktail: ^1.0.4
+  flutter_launcher_icons: "^0.14.3"
 
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/flexpaylogo.png"
+  adaptive_icon_foreground: "assets/icon/flexpaylogo.png"  # Ensures better resolution for adaptive icons
+  adaptive_icon_background: "#ffffff" 
   
   flutter_lints: ^5.0.0
 
@@ -68,5 +73,8 @@ flutter:
     - assets/images/dashboardimages/Hotpoint.png
     - assets/images/dashboardimages/Car-and-General.png
     - assets/logos/logo.png
+    - assets/images/Chama-3.png
+    - assets/images/Chama.png
+    
 
   

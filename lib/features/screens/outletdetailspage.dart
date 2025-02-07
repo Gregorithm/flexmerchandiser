@@ -51,6 +51,7 @@ class _OutletDetailsPageState extends State<OutletDetailsPage> {
     const String url =
         "https://bookings.flexpay.co.ke/api/merchandizer/customers";
     final Map<String, dynamic> requestBody = {
+      //"user_id": 309731,
       "user_id": userController.userId.value,
       "outlet_id": int.parse(widget.outletId),
     };
@@ -117,7 +118,7 @@ class _OutletDetailsPageState extends State<OutletDetailsPage> {
 
   String _formatPhoneNumber(String phone) {
     if (phone.startsWith('254') && phone.length == 12) {
-      return '0${phone.substring(3)}';
+      return '80${phone.substring(3)}';
     }
     return phone; // Return the original phone number if it doesn't match the format
   }

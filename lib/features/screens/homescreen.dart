@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'package:flexmerchandiser/features/controllers/usercontroller.dart';
-import 'package:flexmerchandiser/features/screens/appbarhome.dart';
 import 'package:flexmerchandiser/features/screens/outletdetailspage.dart';
+import 'package:flexmerchandiser/features/screens/profilepage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
@@ -20,8 +19,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> outlets = [];
   bool isLoading = true;
-  int outletsCount = 0; // Variable to store the number of outlets
-  final UserController userController = Get.find <UserController>();
+  int outletsCount = 0;
+  final UserController userController = Get.find<UserController>();
 
   @override
   void initState() {
@@ -30,18 +29,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> fetchOutlets() async {
-    final String userId = userController.userId.value; // Get the user ID from the controller
-    //const  String userId = "309731"; // Replace with dynamic user ID after login
-    if (userId .isEmpty){
-      print("User ID is empty");
+    //final String userId = '309731';
+    final String userId = userController.userId.value;
+    if (userId.isEmpty) {
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("User ID is empty!")),
+      );
+      return;
     }
-    const String url =
+
+    final String url =
         "https://bookings.flexpay.co.ke/api/merchandizer/outlets";
 
     try {
       final response = await http.post(
         Uri.parse(url),
-        body: {"user_id": userId},
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"user_id": userId}),
       );
 
       if (response.statusCode == 200) {
@@ -50,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (mounted) {
             setState(() {
               outlets = data["data"];
-              outletsCount = outlets.length; // Set the number of outlets
+              outletsCount = outlets.length;
               isLoading = false;
             });
           }
@@ -72,7 +79,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Function to map outlet name to image URL
   String getOutletImage(String outletName) {
     if (outletName.startsWith("Quickmart")) {
       return "assets/images/dashboardimages/Quickmart.png";
@@ -87,86 +93,166 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
-      backgroundColor: widget.isDarkModeOn ? Colors.black : Colors.white,
-      appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(490.0),
-          child: appBarHome(
-              context, outletsCount, outlets) // Assuming appBarHome is defined
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/Chama.png'),
+            fit: BoxFit.cover,
           ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : outlets.isEmpty
-              ? Center(
-                  child: Text(
-                    "No outlets available.",
-                    style: GoogleFonts.montserrat(
-                      fontSize: 18,
-                      color: widget.isDarkModeOn ? Colors.white : Colors.black,
-                    ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.03, vertical: screenHeight * 0.04),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: screenHeight * 0.04),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => ProfilePage()),
+                          );
+                        },
+                        child: CircleAvatar(
+                          radius: screenWidth * 0.06,
+                          backgroundImage:
+                              AssetImage('assets/icon/userprofile.png'),
+                        ),
+                      ),
+                      SizedBox(width: screenWidth * 0.02),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hello Merchandiser,',
+                            style: GoogleFonts.montserrat(
+                              fontSize: screenWidth * 0.04,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          Text(
+                            'Welcome Back',
+                            style: GoogleFonts.montserrat(
+                              fontSize: screenWidth * 0.06,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                )
-              : SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 10.0),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Outlets Category',
+                  Icon(Icons.notifications,
+                      color: Colors.white, size: screenWidth * 0.08),
+                ],
+              ),
+              SizedBox(height: screenHeight * 0.16),
+              Center(
+                child: Column(
+                  children: [
+                    Text(
+                      '$outletsCount',
+                      style: GoogleFonts.montserrat(
+                        fontSize: screenWidth * 0.18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.01),
+                    Text(
+                      'Your Outlets',
+                      style: GoogleFonts.montserrat(
+                        fontSize: screenWidth * 0.05,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: screenHeight * 0.06),
+              Expanded(
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : outlets.isEmpty
+                        ? Center(
+                            child: Text(
+                              "No outlets available.",
                               style: GoogleFonts.montserrat(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
                                 color: widget.isDarkModeOn
                                     ? Colors.white
                                     : Colors.black,
                               ),
                             ),
-                            Icon(
-                              Icons.grid_view,
-                              color: widget.isDarkModeOn
-                                  ? Colors.white
-                                  : Colors.black,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        // Generate cards dynamically
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 3 / 4,
-                          ),
-                          itemCount: outlets.length,
-                          itemBuilder: (context, index) {
-                            final outlet = outlets[index];
-                            String imageUrl =
-                                getOutletImage(outlet["outlet_name"]);
+                          )
+                        : Column(
+                            children: [
+                              SizedBox(height: 40.0),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Outlets Category',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.grid_view,
+                                    color: Colors.white,
+                                  ),
+                                ],
+                              ),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(1.0),
+                                  child: GridView.builder(
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      crossAxisSpacing: 16,
+                                      mainAxisSpacing: 16,
+                                      childAspectRatio: 3 / 4,
+                                    ),
+                                    itemCount: outlets.length,
+                                    itemBuilder: (context, index) {
+                                      final outlet = outlets[index];
+                                      String imageUrl =
+                                          getOutletImage(outlet["outlet_name"]);
 
-                            return _buildCategoryCard(
-                              context,
-                              title: outlet["outlet_name"],
-                              subtitle:
-                                  outlet["location_name"] ?? "Tap to view",
-                              backgroundImage:
-                                  imageUrl, // Replace with a dynamic image URL if available
-                              outletId: outlet["id"].toString(),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                                      return _buildCategoryCard(
+                                        context,
+                                        title: outlet["outlet_name"],
+                                        subtitle: outlet["location_name"] ??
+                                            "Tap to view",
+                                        backgroundImage: imageUrl,
+                                        outletId: outlet["id"].toString(),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -177,7 +263,6 @@ class _HomeScreenState extends State<HomeScreen> {
       required String outletId}) {
     return GestureDetector(
       onTap: () {
-        // Navigate to the outlet details page and pass the outletId
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -201,34 +286,22 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.montserrat(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: widget.isDarkModeOn ? Colors.white : Colors.white,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.montserrat(
-                      fontSize: 14,
-                      color:
-                          widget.isDarkModeOn ? Colors.white60 : Colors.white54,
-                    ),
-                  ),
+                  Text(title,
+                      style: GoogleFonts.montserrat(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white)),
+                  Text(subtitle,
+                      style: GoogleFonts.montserrat(
+                          fontSize: 14, color: Colors.white54)),
                 ],
               ),
             ),
             Positioned(
-              top: 16,
-              right: 16,
-              child: Icon(
-                Icons.arrow_outward,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
+                top: 16,
+                right: 16,
+                child:
+                    Icon(Icons.arrow_outward, color: Colors.white, size: 24)),
           ],
         ),
       ),

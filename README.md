@@ -12,7 +12,7 @@ FlexMerchandiser is a powerful application designed to streamline and enhance th
 
 ## Installation
 To install and run the FlexMerchandiser app locally, follow the steps below.
-
+,
 ### Requirements
 
 	•	Flutter SDK

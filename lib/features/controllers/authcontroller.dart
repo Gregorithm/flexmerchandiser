@@ -20,14 +20,16 @@ class AuthController extends GetxController {
 
   Future<void> loadToken() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    token.value =  prefs.getString('auth_token') ?? "";
+    token.value = prefs.getString('auth_token') ?? "";
 
     log('Token Loaded: ${token.value}');
   }
 
   Future<void> logoutUser() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
+    token.value = prefs.getString('auth_token') ?? "";
     await prefs.remove('auth_token');
+    log('Token ${token.value} removed from shared preferences');
   }
 
   bool get isAuthenticated => token.value.isNotEmpty;

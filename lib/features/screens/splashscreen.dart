@@ -32,7 +32,7 @@ class _SplashScreenState extends State<SplashScreen>
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
 
     // Navigate after the animation or delay based on the auth status
-    Timer(const Duration(seconds: 7),
+    Timer(const Duration(seconds: 2),
         _navigateBasedOnAuthStatus); // Redirect based on auth status
   }
 
