@@ -153,7 +153,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         if (updateResponse.statusCode == 200 &&
             responseBody["success"] == true) {
           print("Customer ID $customerId status updated successfully.");
+          // REFRESH CUSTOMER SUMMARY AFTER SUCCESSFUL UPDATE
+        fetchCustomerSummary();  
           return true;
+
+          
         } else {
           print("Error: ${responseBody["message"] ?? "Unknown error"}");
           return false;

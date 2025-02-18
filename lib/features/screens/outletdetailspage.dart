@@ -112,11 +112,9 @@ class _OutletDetailsPageState extends State<OutletDetailsPage> {
           List<dynamic> formattedPageData = pageData.map((customer) {
             // Format customer data
             customer["phone"] = (customer["phone"] ?? "");
-            customer["status"] =
-                customer["customer_followup"]?["status"] ?? "NOT CALLED";
+            customer["status"] = customer["customer_followup"]?["status"] ?? "NOT CALLED";
            customer["description"] = (customer["customer_followup"]?["description"] ?? "") ?? "";
-            customer["flexsave"] =
-                customer["is_flexsave_customer"] == 1 ? "Yes" : "No";
+            customer["flexsave"] = customer["is_flexsave_customer"] == 1 ? "Yes" : "No";
 
             // Add the customer ID to the list
             int customerId = customer["id"];
@@ -243,34 +241,34 @@ class _OutletDetailsPageState extends State<OutletDetailsPage> {
                         SizedBox(height: screenHeight * 0.02),
                         _buildSearchBar(screenWidth, _searchController),
                         SizedBox(height: screenHeight * 0.01),
-                        Expanded(
-                          child: ListView.builder(
-                            itemCount: filteredDetails.length,
-                            itemBuilder: (context, index) {
-                              final customer = filteredDetails[index];
-                              return GestureDetector(
-                                onTap: () {
-                                  // Navigate to CustomerDetailsPage with customer details
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => CustomerDetailsPage(
-                                          customer: customer,
-                                          customerId: customer["id"] != null
-                                              ? int.parse(
-                                                  customer["id"].toString())
-                                              : 0,
-                                               description: customer["customer_followup"]?["description"] ?? "",
-                                               ),
-                                          
-                                    ),
-                                  );
-                                },
-                                child: _buildCustomerRow(customer, screenWidth),
-                              );
-                            },
-                          ),
-                        ),
+                       Expanded(
+                                child: RefreshIndicator(
+                                  onRefresh: fetchOutletDetails, // Calls the function to refresh data
+                                  child: ListView.builder(
+                                    itemCount: filteredDetails.length,
+                                    itemBuilder: (context, index) {
+                                      final customer = filteredDetails[index];
+                                      return GestureDetector(
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => CustomerDetailsPage(
+                                                customer: customer,
+                                                customerId: customer["id"] != null
+                                                    ? int.parse(customer["id"].toString())
+                                                    : 0,
+                                                description: customer["customer_followup"]?["description"] ?? "",
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        child: _buildCustomerRow(customer, screenWidth),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
                         // Pagination controls
                         if (hasNextPage || currentPage > 1)
                           Padding(
