@@ -1,4 +1,5 @@
 import 'package:flexmerchandiser/features/controllers/usercontroller.dart';
+import 'package:flexmerchandiser/features/screens/customerdetails.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,8 +10,9 @@ import 'package:permission_handler/permission_handler.dart';
 
 class OutletDetailsPage extends StatefulWidget {
   final String outletId;
+  final String description;
 
-  OutletDetailsPage({super.key, required this.outletId});
+  OutletDetailsPage({super.key, required this.outletId, required this.description});
 
   @override
   _OutletDetailsPageState createState() => _OutletDetailsPageState();
@@ -20,8 +22,10 @@ class _OutletDetailsPageState extends State<OutletDetailsPage> {
   List<dynamic> outletDetails = [];
   List<dynamic> filteredDetails = [];
   bool isLoading = true;
-  final UserController userController = Get.find<UserController>(); // Injecting the UserController
+  final UserController userController =
+      Get.find<UserController>(); // Injecting the UserController
   final TextEditingController _searchController = TextEditingController();
+  
   final List<String> statusOptions = [
     "NOT CALLED",
     "NOT ANSWERED",
@@ -39,59 +43,6 @@ class _OutletDetailsPageState extends State<OutletDetailsPage> {
     super.initState();
     fetchOutletDetails();
     _searchController.addListener(_filterCustomers);
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> fetchOutletDetails() async {
-    const String url =
-        "https://bookings.flexpay.co.ke/api/merchandizer/customers";
-    final Map<String, dynamic> requestBody = {
-      //"user_id": 309731,
-      "user_id": userController.userId.value,
-      "outlet_id": int.parse(widget.outletId),
-    };
-
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode(requestBody),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        if (data["success"] == true) {
-          setState(() {
-            outletDetails = (data["data"]["data"] ?? []).map((customer) {
-              // Format the phone numbers on fetch
-              customer["phone"] = _formatPhoneNumber(customer["phone"] ?? "");
-              customer["status"] = customer["customer_followup"]?["status"] ??
-                  "NOT CALLED"; // Extract status or default to "NOT CALLED" since it is nested further and not directly
-              customer["flexsave"] =
-                  customer["is_flexsave_customer"] == 1 ? "Yes" : "No";
-              return customer;
-            }).toList();
-            filteredDetails = outletDetails;
-            isLoading = false;
-          });
-        } else {
-          throw Exception('Failed to load customer details');
-        }
-      } else {
-        throw Exception('Failed to load customer details');
-      }
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      Get.snackbar("Error", "Failed to fetch data: $e");
-    }
   }
 
   void _filterCustomers() {
@@ -116,59 +67,101 @@ class _OutletDetailsPageState extends State<OutletDetailsPage> {
     }
   }
 
-  String _formatPhoneNumber(String phone) {
-    if (phone.startsWith('254') && phone.length == 12) {
-      return '80${phone.substring(3)}';
-    }
-    return phone; // Return the original phone number if it doesn't match the format
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
-  Future<void> updateCustomerStatus(int customerId, String status) async {
-    const String updateUrl =
-        "https://www.flexpay.co.ke/users/api/merchandizer/customer-followup";
+  bool hasNextPage = true;
+  int currentPage = 1;
+  final int itemsPerPage = 10;
+
+  // Fetch customer details with pagination
+  Future<void> fetchOutletDetails() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    const String url =
+        "https://bookings.flexpay.co.ke/api/merchandizer/customers";
+    final Map<String, dynamic> requestBody = {
+      "user_id": userController.userId.value,
+      "outlet_id": int.parse(widget.outletId),
+    };
 
     try {
-      final Map<String, dynamic> requestBody = {
-        "user_id": customerId, // Update only this customer
-        "status": status, // New status to update
-      };
-
-      // Log the request body
-      print("Sending update request: $requestBody");
-
-      final updateResponse = await http.post(
-        Uri.parse(updateUrl),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization":
-              "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvd3d3LmZsZXhwYXkuY28ua2VcL3VzZXJzXC9hcGlcL2xvZ2luIiwiaWF0IjoxNzM3OTk2NTE4LCJleHAiOjYwMDAxNzM3OTk2NDU4LCJuYmYiOjE3Mzc5OTY1MTgsImp0aSI6IjlhWFhuOFZUWTc1Z3FvamEiLCJzdWIiOjIxMTQyMiwicHJ2IjoiODdlMGFmMWVmOWZkMTU4MTJmZGVjOTcxNTNhMTRlMGIwNDc1NDZhYSJ9.RCMsQxDPdowoKt3BPSiXuY25XUmwpX5_3Nnwcq2I8fQ"
-        },
-        body: json.encode(requestBody),
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          ...requestBody,
+          "page": currentPage,
+          "per_page": itemsPerPage,
+        }),
       );
 
-      // Log response details
-      print("Response status: ${updateResponse.statusCode}");
-      print("Response body: ${updateResponse.body}");
+      List<int> customerIds = []; // To store the customer IDs
 
-      if (updateResponse.statusCode == 200) {
-        final updateData = json.decode(updateResponse.body);
-        if (updateData["success"] == true) {
-          print(
-              "Customer ID $customerId status updated successfully in backend.");
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data["success"] == true) {
+          List<dynamic> pageData = data["data"]["data"] ?? [];
+
+          List<dynamic> formattedPageData = pageData.map((customer) {
+            // Format customer data
+            customer["phone"] = (customer["phone"] ?? "");
+            customer["status"] =
+                customer["customer_followup"]?["status"] ?? "NOT CALLED";
+           customer["description"] = (customer["customer_followup"]?["description"] ?? "") ?? "";
+            customer["flexsave"] =
+                customer["is_flexsave_customer"] == 1 ? "Yes" : "No";
+
+            // Add the customer ID to the list
+            int customerId = customer["id"];
+            customerIds.add(customerId); // Store the customer ID
+
+            print("Fetched Customer ID: $customerId"); // Log the customer ID
+            print("Fetched description: ${customer['description']}");
+
+            return customer;
+          }).toList();
+
+          setState(() {
+            outletDetails = formattedPageData; // Replace old records
+            filteredDetails = formattedPageData; // Replace old records
+            hasNextPage =
+                pageData.length == itemsPerPage; // Check if there's more data
+          });
         } else {
-          print(
-              "Backend error for Customer ID $customerId: ${updateData["message"]}");
+          throw Exception('Failed to load customer details');
         }
       } else {
-        print(
-            "Failed to update status for Customer ID $customerId. Status code: ${updateResponse.statusCode}");
+        throw Exception('Failed to load customer details');
       }
     } catch (e) {
-      print("Error updating status for Customer ID $customerId: $e");
+      setState(() {
+        isLoading = false;
+      });
+      Get.snackbar("Error", "Failed to fetch data: $e");
     }
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
-  Future<void> _makePhoneCall(String phoneNumber) async {
+  // Update page and fetch data when user presses Next/Previous
+  void changePage(int delta) {
+    setState(() {
+      currentPage += delta;
+      outletDetails.clear(); // Clear current data to replace with new page data
+    });
+    fetchOutletDetails();
+  }
+
+  Future<void> _initiatePhoneCall(String phoneNumber) async {
     final Uri url = Uri(scheme: 'tel', path: phoneNumber);
     if (await canLaunch(url.toString())) {
       await launch(url.toString());
@@ -248,57 +241,113 @@ class _OutletDetailsPageState extends State<OutletDetailsPage> {
                           ),
                         ),
                         SizedBox(height: screenHeight * 0.02),
-                        _buildSearchBar(screenWidth),
+                        _buildSearchBar(screenWidth, _searchController),
                         SizedBox(height: screenHeight * 0.01),
                         Expanded(
                           child: ListView.builder(
                             itemCount: filteredDetails.length,
                             itemBuilder: (context, index) {
                               final customer = filteredDetails[index];
-                              return _buildCustomerRow(customer, screenWidth);
+                              return GestureDetector(
+                                onTap: () {
+                                  // Navigate to CustomerDetailsPage with customer details
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CustomerDetailsPage(
+                                          customer: customer,
+                                          customerId: customer["id"] != null
+                                              ? int.parse(
+                                                  customer["id"].toString())
+                                              : 0,
+                                               description: customer["customer_followup"]?["description"] ?? "",
+                                               ),
+                                          
+                                    ),
+                                  );
+                                },
+                                child: _buildCustomerRow(customer, screenWidth),
+                              );
                             },
+                          ),
+                        ),
+                        // Pagination controls
+                        if (hasNextPage || currentPage > 1)
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                                vertical: screenHeight * 0.0011),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (currentPage > 1)
+                                  TextButton(
+                                    onPressed: () => changePage(-1),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.arrow_back,
+                                          color: Colors.white,
+                                          size: screenWidth * 0.04,
+                                        ),
+                                        SizedBox(
+                                            width: screenWidth *
+                                                0.01), // Space between icon and text
+                                        Text(
+                                          'Previous',
+                                          style: GoogleFonts.montserrat(
+                                            fontSize: screenWidth * 0.04,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (hasNextPage)
+                                  TextButton(
+                                    onPressed: () => changePage(1),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          'Next Page',
+                                          style: GoogleFonts.montserrat(
+                                            fontSize: screenWidth * 0.04,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        SizedBox(
+                                            width: screenWidth *
+                                                0.01), // Space between text and icon
+                                        Icon(
+                                          Icons.arrow_forward,
+                                          color: Colors.blue,
+                                          size: screenWidth * 0.04,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        // Page indicators
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                              vertical: screenHeight * 0.001),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Page $currentPage',
+                                style: GoogleFonts.montserrat(
+                                  fontSize: screenWidth * 0.04,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSearchBar(double screenWidth) {
-    return Container(
-      height: screenWidth * 0.13,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(25.0),
-      ),
-      child: Row(
-        children: [
-          const SizedBox(width: 10),
-          const Icon(Icons.search, color: Colors.grey),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: "Search for phone number here",
-                hintStyle: GoogleFonts.montserrat(
-                  fontSize: screenWidth * 0.04,
-                  color: Colors.grey,
-                ),
-              ),
-              style: GoogleFonts.montserrat(
-                fontSize: screenWidth * 0.04,
-                color: Colors.black,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          const Icon(Icons.grid_view, color: Colors.grey),
-          const SizedBox(width: 10),
-        ],
       ),
     );
   }
@@ -327,7 +376,6 @@ class _OutletDetailsPageState extends State<OutletDetailsPage> {
                   ),
                 ),
                 SizedBox(height: screenWidth * 0.01),
-
                 // Flexsave Status with Color Change
                 Text(
                   customer["flexsave"] == "Yes" ? "Yes" : "No",
@@ -339,7 +387,6 @@ class _OutletDetailsPageState extends State<OutletDetailsPage> {
                         : Colors.red,
                   ),
                 ),
-
                 SizedBox(height: screenWidth * 0.005),
                 Text(
                   customer["date_created"] ?? "N/A",
@@ -351,112 +398,101 @@ class _OutletDetailsPageState extends State<OutletDetailsPage> {
               ],
             ),
           ),
-
           // Right Section - Status Dropdown + Phone Number
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _buildStatusDropdown(customer, screenWidth),
-
+              SizedBox(height: screenWidth * 0.005),
+              Text(
+                customer["status"] ?? "N/A",
+                style: GoogleFonts.montserrat(
+                  fontSize: screenWidth * 0.035,
+                  color: Colors.black54,
+                ),
+              ),
               SizedBox(height: screenWidth * 0.02),
-
               // Phone Number Below Dropdown
               GestureDetector(
-                onTap: () => _makePhoneCall(customer["phone"]),
+                onTap: () => (customer["phone"]),
                 child: Text(
-                  customer["phone"] ?? "N/A",
+                  customer["phone"]?.toString().replaceFirst("254", "80") ??
+                      "N/A",
                   style: GoogleFonts.montserrat(
                     fontSize: screenWidth * 0.04,
                     color: Colors.blue,
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildStatusDropdown(
-      Map<String, dynamic> customer, double screenWidth) {
-    return DropdownButton<String>(
-      value: statusOptions.contains(customer["status"])
-          ? customer["status"]
-          : statusOptions[0],
-      dropdownColor: Colors.white, // Set dropdown background to white
+
+Widget _buildSearchBar(
+    double screenWidth, TextEditingController searchController) {
+  return Container(
+    height: screenWidth * 0.13,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(25.0),
+    ),
+    child: Row(
+      children: [
+        const SizedBox(width: 10),
+        const Icon(Icons.search, color: Colors.grey),
+        const SizedBox(width: 10),
+        Expanded(
+          child: TextField(
+            controller: searchController,
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              hintText: "Search for phone number here",
+              hintStyle: GoogleFonts.montserrat(
+                fontSize: screenWidth * 0.04,
+                color: Colors.grey,
+              ),
+            ),
+            style: GoogleFonts.montserrat(
+              fontSize: screenWidth * 0.04,
+              color: Colors.black,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        const Icon(Icons.grid_view, color: Colors.grey),
+        const SizedBox(width: 10),
+      ],
+    ),
+  );
+}
+
+Widget _buildHeaderCell(String text, double screenWidth) {
+  return Expanded(
+    child: SelectableText(
+      text,
       style: GoogleFonts.montserrat(
-        // Ensure selected item text is black
+        fontSize: screenWidth * 0.04,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+      ),
+      textAlign: TextAlign.center,
+    ),
+  );
+}
+
+Widget _buildDataCell(String text, double screenWidth) {
+  return Expanded(
+    child: SelectableText(
+      text,
+      style: GoogleFonts.montserrat(
         fontSize: screenWidth * 0.035,
         color: Colors.black,
       ),
-      items: statusOptions.map((String status) {
-        return DropdownMenuItem<String>(
-          value: status,
-          child: Text(
-            status,
-            style: GoogleFonts.montserrat(
-              fontSize: screenWidth * 0.035,
-              color: Colors.black, // Ensure text inside dropdown is black
-            ),
-          ),
-        );
-      }).toList(),
-      onChanged: (newStatus) async {
-        if (newStatus != null) {
-          setState(() {
-            customer["status"] = newStatus; // Update UI immediately
-          });
-
-          try {
-            // Call API for the specific customer
-            await updateCustomerStatus(customer["id"], newStatus);
-
-            // Show success feedback
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text("Status updated to $newStatus successfully!"),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } catch (e) {
-            // Handle failure feedback
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text("Failed to update status. Please try again."),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      },
-    );
-  }
-
-  Widget _buildHeaderCell(String text, double screenWidth) {
-    return Expanded(
-      child: SelectableText(
-        text,
-        style: GoogleFonts.montserrat(
-          fontSize: screenWidth * 0.04,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-
-  Widget _buildDataCell(String text, double screenWidth) {
-    return Expanded(
-      child: SelectableText(
-        text,
-        style: GoogleFonts.montserrat(
-          fontSize: screenWidth * 0.035,
-          color: Colors.black,
-        ),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
+      textAlign: TextAlign.center,
+    ),
+  );
 }

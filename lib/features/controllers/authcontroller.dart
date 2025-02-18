@@ -33,4 +33,6 @@ class AuthController extends GetxController {
   }
 
   bool get isAuthenticated => token.value.isNotEmpty;
+
+  void logout() {}
 }

@@ -75,6 +75,8 @@ flutter:
     - assets/logos/logo.png
     - assets/images/Chama-3.png
     - assets/images/Chama.png
+    - assets/images/appbarbackground.png
+    - assets/images/chamaanimation.webm
     
 
   

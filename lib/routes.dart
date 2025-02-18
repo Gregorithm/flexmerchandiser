@@ -14,6 +14,6 @@ final Map<String, WidgetBuilder> appRoutes = {
   '/otpverification': (context) => const OTPScreen(
         phoneNumber: '',
       ),
-  '/home': (context) =>  HomeScreen(isDarkModeOn: false),
+  '/home': (context) =>  HomeScreen(),
   '/profile': (context) => ProfilePage(),
 };

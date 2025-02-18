@@ -107,9 +107,7 @@ class _OTPScreenState extends State<OTPScreen> {
     _videoController.addListener(() {
       if (_videoController.value.position >= _videoController.value.duration) {
         _videoController.removeListener(() {});
-        Get.offAll(() => HomeScreen(
-              isDarkModeOn: false,
-            ));
+        Get.offAll(() => HomeScreen());
       }
     });
   }

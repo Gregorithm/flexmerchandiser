@@ -25,5 +25,7 @@ class UserController extends GetxController {
     log('User ID loaded: ${userId.value}');
   }
 
+
+
   bool get isAuthenticated => userId.value.isNotEmpty;
 }

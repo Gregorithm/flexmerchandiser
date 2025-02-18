@@ -41,7 +41,7 @@ class _SplashScreenState extends State<SplashScreen>
     final userController = Get.find<UserController>();
 
     if (authController.isAuthenticated && userController.isAuthenticated) {
-      Get.offAll(() => HomeScreen(isDarkModeOn: false,));
+      Get.offAll(() => HomeScreen());
     } else {
       Get.offAll(() => OnboardingScreen());
     }
