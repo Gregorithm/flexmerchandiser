@@ -25,7 +25,22 @@ class UserController extends GetxController {
     log('User ID loaded: ${userId.value}');
   }
 
+  Future<void> setPhoneNumber(String phoneNumberValue) async {
+    phoneNumber.value = phoneNumberValue;
 
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('phone_number', phoneNumberValue);
+
+    final storedPhoneNumber = prefs.getString('phone_number');
+    log('Stored Phone Number is: $storedPhoneNumber');
+  }
+
+  Future<void> loadPhoneNumber() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    phoneNumber.value = await prefs.getString('phone_number') ?? '';
+    
+    log('PhoneNumber loaded is: ${phoneNumber.value}');
+  }
 
   bool get isAuthenticated => userId.value.isNotEmpty;
 }
