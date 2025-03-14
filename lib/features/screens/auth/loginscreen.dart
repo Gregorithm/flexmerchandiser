@@ -1,13 +1,9 @@
-import 'dart:convert';
-
-import 'package:flexmerchandiser/features/controllers/phonecontroller.dart';
 import 'package:flexmerchandiser/features/controllers/usercontroller.dart';
-import 'package:flexmerchandiser/features/screens/auth/api_service.dart';
+import 'package:flexmerchandiser/features/controllers/api_service.dart';
 import 'package:flexmerchandiser/features/screens/auth/otpverificationscreen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:developer';
-import 'package:http/http.dart' as http;
 import 'package:lottie/lottie.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -26,17 +22,14 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isLoading = false;
 
   // Method to send OTP request
- Future<void> _requestOtp(BuildContext context) async {
+  // Method to send OTP request
+Future<void> _requestOtp(BuildContext context) async {
   String phoneNumber = phoneController.text.trim();
 
   if (phoneNumber.isEmpty) {
-    log('Please enter your phone number');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Please enter your phone number'),
-        backgroundColor: Colors.red,
-      ),
-    );
+    // Simple log since ApiService will handle UI errors elsewhere
+    log('Phone number is empty.');
+    ApiService.showErrorSnackBar(context, 'Please enter your phone number');
     return;
   }
 
@@ -52,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
   await ApiService.postRequest(
     url: url,
     body: requestBody,
-    context: context,
+    context: context, // Snackbars handled inside ApiService
     showLoader: true,
     onSuccess: (data) async {
       log('OTP sent to $phoneNumber');
@@ -68,14 +61,13 @@ class _LoginScreenState extends State<LoginScreen> {
     onError: (errorMessage) {
       log('Failed to send OTP: $errorMessage');
 
+      // No need for Snackbar here; ApiService already shows it.
       setState(() {
         isLoading = false;
       });
     },
   );
 }
-
-
 
   @override
   Widget build(BuildContext context) {

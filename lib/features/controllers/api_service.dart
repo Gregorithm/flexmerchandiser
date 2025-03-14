@@ -12,32 +12,52 @@ class ApiService {
     Map<String, String>? headers,
     Function(dynamic response)? onSuccess,
     Function(String error)? onError,
-    BuildContext? context, required bool showLoader,
+    BuildContext? context,
+    required bool showLoader,
   }) async {
     try {
+      final requestHeaders = headers ??
+          {
+            "Content-Type": "application/json",
+            "Authorization":
+                "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvd3d3LmZsZXhwYXkuY28ua2VcL3VzZXJzXC9hcGlcL2xvZ2luIiwiaWF0IjoxNzM3OTk2NTE4LCJleHAiOjYwMDAxNzM3OTk2NDU4LCJuYmYiOjE3Mzc5OTY1MTgsImp0aSI6IjlhWFhuOFZUWTc1Z3FvamEiLCJzdWIiOjIxMTQyMiwicHJ2IjoiODdlMGFmMWVmOWZkMTU4MTJmZGVjOTcxNTNhMTRlMGIwNDc1NDZhYSJ9"
+          };
+
+      // Parse the URL to extract query parameters
+      final uri = Uri.parse(url);
+      final queryParams = uri.queryParameters;
+
+      log("---- REQUEST LOG START ----");
+      log("Request Type: POST");
+      log("URL: ${uri.origin}${uri.path}");
+      log("Query Params: $queryParams");
+      log("Body: ${jsonEncode(body)}");
+      log("---- REQUEST LOG END ----");
+
       final response = await http.post(
-        Uri.parse(url),
-        headers: headers ??
-            {
-              "Content-Type": "application/json",
-              "Authorization":
-                  "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvd3d3LmZsZXhwYXkuY28ua2VcL3VzZXJzXC9hcGlcL2xvZ2luIiwiaWF0IjoxNzM3OTk2NTE4LCJleHAiOjYwMDAxNzM3OTk2NDU4LCJuYmYiOjE3Mzc5OTY1MTgsImp0aSI6IjlhWFhuOFZUWTc1Z3FvamEiLCJzdWIiOjIxMTQyMiwicHJ2IjoiODdlMGFmMWVmOWZkMTU4MTJmZGVjOTcxNTNhMTRlMGIwNDc1NDZhYSJ9"
-            },
+        uri,
+        headers: requestHeaders,
         body: jsonEncode(body),
       );
 
-      log("POST $url => ${response.statusCode}");
-      log("Response Body => ${response.body}");
-
-      final responseData = jsonDecode(response.body);
-
       if (response.statusCode == 200) {
         if (onSuccess != null) {
-          onSuccess(responseData);
+          onSuccess(response.body);
         }
-        return responseData;
+        return response.body;
       } else {
-        String errorMessage = responseData['message'] ?? 'Something went wrong.';
+        String errorMessage = 'Something went wrong.';
+
+        final responseData = jsonDecode(response.body);
+        if (responseData['errors'] != null &&
+            responseData['errors'] is List &&
+            responseData['errors'].isNotEmpty) {
+          errorMessage =
+              responseData['errors'][0]; //Get the first error message
+        } else if (responseData['message'] != null) {
+          errorMessage = responseData['message'];
+        }
+
         if (onError != null) {
           onError(errorMessage);
         }
@@ -82,28 +102,42 @@ class ApiService {
     BuildContext? context,
   }) async {
     try {
+      final requestHeaders = headers ??
+          {
+            "Content-Type": "application/json",
+            "Authorization":
+                "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvd3d3LmZsZXhwYXkuY28ua2VcL3VzZXJzXC9hcGlcL2xvZ2luIiwiaWF0IjoxNzM3OTk2NTE4LCJleHAiOjYwMDAxNzM3OTk2NDU4LCJuYmYiOjE3Mzc5OTY1MTgsImp0aSI6IjlhWFhuOFZUWTc1Z3FvamEiLCJzdWIiOjIxMTQyMiwicHJ2IjoiODdlMGFmMWVmOWZkMTU4MTJmZGVjOTcxNTNhMTRlMGIwNDc1NDZhYSJ9"
+          };
+
+      // Parse the URL to extract query parameters
+      final uri = Uri.parse(url);
+      final queryParams = uri.queryParameters;
+
+      log("---- REQUEST LOG START ----");
+      log("Request Type: GET");
+      log("URL: ${uri.origin}${uri.path}");
+      log("Query Params: $queryParams");
+      log("---- REQUEST LOG END ----");
+
       final response = await http.get(
-        Uri.parse(url),
-        headers: headers ??
-            {
-              "Content-Type": "application/json",
-              "Authorization":
-                  "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvd3d3LmZsZXhwYXkuY28ua2VcL3VzZXJzXC9hcGlcL2xvZ2luIiwiaWF0IjoxNzM3OTk2NTE4LCJleHAiOjYwMDAxNzM3OTk2NDU4LCJuYmYiOjE3Mzc5OTY1MTgsImp0aSI6IjlhWFhuOFZUWTc1Z3FvamEiLCJzdWIiOjIxMTQyMiwicHJ2IjoiODdlMGFmMWVmOWZkMTU4MTJmZGVjOTcxNTNhMTRlMGIwNDc1NDZhYSJ9"
-            },
+        uri,
+        headers: requestHeaders,
       );
 
-      log("GET $url => ${response.statusCode}");
-      log("Response Body => ${response.body}");
-
-      final responseData = jsonDecode(response.body);
+      log("---- RESPONSE LOG START ----");
+      log("Response Status Code: ${response.statusCode}");
+      log("Response Body: ${response.body}");
+      log("---- RESPONSE LOG END ----");
 
       if (response.statusCode == 200) {
         if (onSuccess != null) {
-          onSuccess(responseData);
+          onSuccess(response.body);
         }
-        return responseData;
+        return response.body;
       } else {
-        String errorMessage = responseData['message'] ?? 'Something went wrong.';
+        final responseData = jsonDecode(response.body);
+        String errorMessage =
+            responseData['message'] ?? 'Something went wrong.';
         if (onError != null) {
           onError(errorMessage);
         }
@@ -138,6 +172,15 @@ class ApiService {
     }
   }
 
+  ApiService.showErrorSnackBar(BuildContext context, String message) {
+    _showSnackBar(
+      context,
+      title: 'Error',
+      message: message,
+      icon: Icons.error_outline,
+    );
+  }
+
   // Custom Snackbar
   static void _showSnackBar(
     BuildContext context, {
@@ -151,7 +194,8 @@ class ApiService {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     // Dynamic colors
-    final Color backgroundColor = isDarkMode ? Colors.grey.shade900 : Colors.white;
+    final Color backgroundColor =
+        isDarkMode ? Colors.grey.shade900 : Colors.white;
     final Color iconBackgroundColor = isDarkMode
         ? Colors.white.withOpacity(0.1)
         : Colors.black.withOpacity(0.05);
@@ -246,7 +290,7 @@ class ApiService {
             ],
           ),
         ),
-        duration: Duration(seconds: 5),
+        duration: Duration(seconds: 4),
       ),
     );
   }

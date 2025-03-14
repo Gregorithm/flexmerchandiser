@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:flexmerchandiser/features/controllers/authcontroller.dart';
 import 'package:flexmerchandiser/features/controllers/usercontroller.dart';
-import 'package:flexmerchandiser/features/screens/auth/api_service.dart';
+import 'package:flexmerchandiser/features/controllers/api_service.dart';
 import 'package:flexmerchandiser/features/screens/homescreen/homescreen.dart';
 import 'package:flexmerchandiser/features/screens/auth/loginscreen.dart';
 import 'package:flutter/material.dart';
@@ -47,35 +47,44 @@ class _OTPScreenState extends State<OTPScreen> {
     _videoController.dispose();
     super.dispose();
   }
-Future<void> _verifyOtp(BuildContext context) async {
-  if (_isLoading) return;
 
-  setState(() {
-    _isLoading = true;
-    _otp = _controllers.map((c) => c.text).join();
-  });
+  Future<void> _verifyOtp(BuildContext context) async {
+    if (_isLoading) return;
 
-  final String url = 'https://www.flexpay.co.ke/users/api/app/promoter/verify-otp';
-  final Map<String, dynamic> requestBody = {
-    'phone_number': widget.phoneNumber,
-    'otp': _otp,
-  };
+    setState(() {
+      _isLoading = true;
+      _otp = _controllers.map((c) => c.text).join();
+    });
 
-  await ApiService.postRequest(
-    url: url,
-    body: requestBody,
-    context: context,
-    showLoader: true,
-    onSuccess: (responseData) async {
-      if (responseData['success'] == true) {
-        final userId = responseData['data']['user']['id'].toString();
-        final token = responseData['data']['token'];
+    final String url =
+        'https://www.flexpay.co.ke/users/api/app/promoter/verify-otp';
+
+    final Map<String, dynamic> requestBody = {
+      "phone_number": widget.phoneNumber,
+      'otp': _otp,
+    };
+
+    try {
+      await ApiService.postRequest(
+        url: url,
+        body: requestBody,
+        showLoader: true,
+        onSuccess: (responseData) async {
+          log('responseData: $responseData'); // Logs the full response
+
+          // Check if the response is successful
+
+          final decodedResponseData = jsonDecode(responseData);
+
+      if (decodedResponseData['success'] == true) {
+        final userId = decodedResponseData['data']['user']['id'].toString();
+        final token = decodedResponseData['data']['token'];
 
         userController.phoneNumber.value = widget.phoneNumber;
 
-        userController.setUserId(userId);
+        //SET THE userId 
+        userController.setUserId(userId.toString());
         log('User ID: $userId, Token: $token');
-
         final authController = Get.find<AuthController>();
         await authController.loginUser(token);
 
@@ -84,37 +93,42 @@ Future<void> _verifyOtp(BuildContext context) async {
         } else {
           Get.offAll(LoginScreen());
         }
-
-        setState(() {
-          _isLoading = false;
-        });
-      } else {
-        _showErrorDialog("Invalid OTP. Please try again.");
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    },
-    onError: (errorMessage) {
-      log('Error verifying OTP: $errorMessage');
-      _showErrorDialog("An error occurred. Please try again.");
+      }else {
+            _showErrorDialog("Invalid OTP. Please try again.");
+            setState(() {
+              _isLoading = false;
+            });
+          }
+        },
+        onError: (error) {
+          log("Error verifying OTP: $error");
+          _showErrorDialog("An error occurred. Please try again.");
+          setState(() {
+            _isLoading = false;
+          });
+        },
+      );
+    } catch (error) {
+      log("Unexpected error verifying OTP: $error");
+      _showErrorDialog("An unexpected error occurred. Please try again.");
       setState(() {
         _isLoading = false;
       });
-    },
-  );
-}
+    }
+  }
 
   void _playSuccessVideo() {
     _videoController.play();
 
-    // Wait for the video to finish, then navigate to the homepage
-    _videoController.addListener(() {
+    // Define the listener function so we can remove it later.
+    void listener() {
       if (_videoController.value.position >= _videoController.value.duration) {
-        _videoController.removeListener(() {});
+        _videoController.removeListener(listener);
         Get.offAll(() => HomeScreen());
       }
-    });
+    }
+
+    _videoController.addListener(listener);
   }
 
   void _showErrorDialog(String message) {
@@ -133,39 +147,63 @@ Future<void> _verifyOtp(BuildContext context) async {
     );
   }
 
+
+
   void _resendOtp() async {
-    final url =
-        Uri.parse('https://www.flexpay.co.ke/users/api/app/promoter/send-otp');
-    try {
-      final response = await http.post(
-        url,
-        body: {
-          'phone_number': widget.phoneNumber,
-        },
-      );
-      final responseData = jsonDecode(response.body);
+    final String url =
+        "https://www.flexpay.co.ke/users/api/app/promoter/send-otp";
 
-      if (response.statusCode == 200 && responseData['success'] == true) {
-        log("OTP resent to ${widget.phoneNumber}");
+    final Map<String, dynamic> requestBody = {
+      'phone_number': widget.phoneNumber,
+    };
 
-        // Clear the input fields
-        for (var controller in _controllers) {
-          controller.clear();
+    await ApiService.postRequest(
+      url: url,
+      body: requestBody,
+      context: context,
+      showLoader: true,
+      onSuccess: (responseData) async {
+        try {
+          // Decode the response if it's a JSON string
+          final decodedResponse = json.decode(responseData);
+
+          if (decodedResponse["success"] == true) {
+            log("OTP resent successfully to phone number: ${widget.phoneNumber}");
+
+            // Clear the input fields
+            for (var controller in _controllers) {
+              controller.clear();
+            }
+
+            setState(() {
+              _otp = "";
+              _isLoading = false;
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("OTP resent successfully")),
+            );
+          } else {
+            log("Failed to resend OTP: ${decodedResponse["errors"]}");
+
+            setState(() {
+              _isLoading = false;
+            });
+          }
+        } catch (e) {
+          log("Error decoding response: $e");
+          setState(() {
+            _isLoading = false;
+          });
         }
+      },
+      onError: (errorMessage) {
+        log('Failed to send OTP: $errorMessage');
         setState(() {
-          _otp = ''; // Reset the OTP string as well
+          _isLoading = false;
         });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("OTP resent successfully")),
-        );
-      } else {
-        _showErrorDialog("Failed to resend OTP. Please try again.");
-      }
-    } catch (error) {
-      _showErrorDialog(
-          "An error occurred while resending OTP. Please check your connection.");
-    }
+      },
+    );
   }
 
   @override
@@ -253,7 +291,9 @@ Future<void> _verifyOtp(BuildContext context) async {
               ),
               SizedBox(height: screenHeight * 0.1),
               ElevatedButton(
-                onPressed: _otp.length == 4 && !_isLoading ? () => _verifyOtp(context) : null,
+                onPressed: _otp.length == 4 && !_isLoading
+                    ? () => _verifyOtp(context)
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
                       const Color(0xFF337687), // Always the desired blue
