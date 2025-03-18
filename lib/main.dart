@@ -6,37 +6,52 @@ import 'package:flexmerchandiser/features/controllers/usercontroller.dart';
 import 'package:flexmerchandiser/features/screens/auth/intropage.dart';
 import 'package:flexmerchandiser/features/screens/auth/loginscreen.dart';
 import 'package:flexmerchandiser/features/screens/auth/splashscreen.dart';
-import 'package:flexmerchandiser/util/device/device_utility.dart';
+import 'package:flexmerchandiser/features/screens/homescreen/homescreen.dart';
+import 'package:flexmerchandiser/util/device/device_utility.dart'; 
 import 'package:flexmerchandiser/util/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 void main() async {
-  Get.put(NavigationController());
-  Get.put(UserController()); // Initialize the UserController
-  final authController = Get.put(AuthController());
-  await authController.loadToken();
+  WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter is ready for async calls.
+
+  // Initialize controllers globally before runApp()
+  final navigationController = Get.put(NavigationController());
   final userController = Get.put(UserController());
+  final authController = Get.put(AuthController());
+
+  // Load user data (simulate from SharedPreferences or API)
   await userController.loadUserId();
   await userController.loadPhoneNumber();
 
-  if (authController.isAuthenticated) {
-    log('user is authenticated with token: ${authController.token.value}');
+  String initialRoute = '/login'; // Default route if not authenticated.
+
+  final userId = userController.userId.value;
+
+  if (userId.isNotEmpty) {
+    // Load token with userId
+    await authController.loadToken(userId);
+
+    // Check authentication with userId
+    if (authController.isAuthenticated) {
+      log('✅ User authenticated - UserID: $userId');
+      initialRoute = '/home'; // Direct to home if authenticated
+    } else {
+      log('❌ Token not found. Redirecting to Login.');
+      initialRoute = '/login';
+    }
   } else {
-    log('User is not authenticated, prompt for login');
+    log('❌ No userId found. Redirecting to Login.');
+    initialRoute = '/login';
   }
 
-  if (userController.isAuthenticated) {
-    log('User is authenticated with user ID: ${userController.userId.value}\n PhoneNumber: ${userController.phoneNumber.value}');
-  } else {
-    log('UserId is not stored in shared preferences, prompt for login');
-  }
-
-  runApp(const FlexMerchandiserApp());
+  runApp(FlexMerchandiserApp(initialRoute: initialRoute));
 }
 
 class FlexMerchandiserApp extends StatelessWidget {
-  const FlexMerchandiserApp({super.key});
+  final String initialRoute;
+
+  const FlexMerchandiserApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -44,27 +59,22 @@ class FlexMerchandiserApp extends StatelessWidget {
       builder: (context, constraints) {
         return OrientationBuilder(
           builder: (context, orientation) {
-            DeviceUtil.init(
-                context); // Initialize DeviceUtil for screen utilities
+            DeviceUtil.init(context); // Initialize device utility
 
-            // Determine the screen width and height
-            double screenWidth = constraints.maxWidth;
-            double screenHeight = constraints.maxHeight;
-
-            // Log screen dimensions for debugging
             debugPrint(
-                "Screen Width: $screenWidth, Screen Height: $screenHeight");
+                "📱 Screen Width: ${constraints.maxWidth}, Height: ${constraints.maxHeight}");
 
             return GetMaterialApp(
-              debugShowCheckedModeBanner: false, // Remove debug banner
+              debugShowCheckedModeBanner: false,
               themeMode: ThemeMode.system,
               theme: TAppTheme.lightTheme,
               darkTheme: TAppTheme.darkTheme,
-              initialRoute: '/',
+              initialRoute: initialRoute, // ✅ Dynamic route based on auth state
               getPages: [
                 GetPage(name: '/', page: () => const SplashScreen()),
                 GetPage(name: '/onboarding', page: () => OnboardingScreen()),
                 GetPage(name: '/login', page: () => LoginScreen()),
+                GetPage(name: '/home', page: () => HomeScreen()), // ✅ Home route
               ],
             );
           },

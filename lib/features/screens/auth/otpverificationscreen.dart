@@ -86,12 +86,12 @@ class _OTPScreenState extends State<OTPScreen> {
         userController.setUserId(userId.toString());
         log('User ID: $userId, Token: $token');
         final authController = Get.find<AuthController>();
-        await authController.loginUser(token);
+        await authController.loginUser(token, userId);
 
-        if (authController.isAuthenticated) {
+        if (authController.isAuthenticated == true) {
           _playSuccessVideo();
         } else {
-          Get.offAll(LoginScreen());
+          Get.offAll(HomeScreen());
         }
       }else {
             _showErrorDialog("Invalid OTP. Please try again.");

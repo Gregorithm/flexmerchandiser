@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flexmerchandiser/features/controllers/usercontroller.dart';
 import 'package:http/http.dart' as https;
 import 'package:path/path.dart';
@@ -76,7 +75,7 @@ class DatabaseService {
         _outletsLocationColumnName: outlet["location_name"],
         _outletsImageColumnName: outlet["image"],
       },
-      conflictAlgorithm: ConflictAlgorithm.ignore,
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
@@ -117,53 +116,49 @@ class DatabaseService {
           'Failed to fetch outlets from Api. Status Code: ${response.statusCode}');
     }
   }
+Future<void> syncOutletsFromApi(String userId) async {
+  if (userId.isEmpty) {
+    print('User ID is empty. Skipping sync.');
+    return;
+  }
 
-  Future<void> syncOutletsFromApi(String userId) async {
-    //fetch outlets from the api
+  final apiOutlets = await fetchOutletsFromApi(userId);
+  final localOutlets = await getLocalOutlets();
+  final localOutletIds =
+      localOutlets.map((outlet) => outlet[_outletsIdColumnName]).toSet();
+
+  print('Syncing outlets...');
+  for (var outlet in apiOutlets) {
+    if (!localOutletIds.contains(outlet['id'])) {
+      outlet["image"] = getOutletImage(outlet["outlet_name"]);
+      print('New outlet found. Syncing: $outlet');
+      await insertOutlet(outlet);
+    } else {
+      print('Outlet already exists locally. Skipping ID: ${outlet['id']}');
+    }
+  }
+
+  print('Sync complete.');
+}
+
+Future<void> syncOutletsFromApiWithFallback(String userId) async {
+  try {
     final apiOutlets = await fetchOutletsFromApi(userId);
-    //fetch local outlets from database
     final localOutlets = await getLocalOutlets();
-    //convert local outlet ids to set for a quick lookup
     final localOutletIds =
         localOutlets.map((outlet) => outlet[_outletsIdColumnName]).toSet();
 
-
-    
-    print('Syncing outlets...');
-    //find new outlets not in the local database and insert them
     for (var outlet in apiOutlets) {
       if (!localOutletIds.contains(outlet['id'])) {
-        // Add image locally
         outlet["image"] = getOutletImage(outlet["outlet_name"]);
-        print('New outlet found. Syncing: $outlet');
-
-        // Insert into local database
         await insertOutlet(outlet);
-      } else {
-      print('Outlet already exists locally. Skipping ID: ${outlet['id']}');
-    }
-    }
-      print('Sync complete.');
-  }
-
-  Future<void> syncOutletsFromApiWithFallback(String userId) async {
-    try {
-      final apiOutlets = await fetchOutletsFromApi(userId);
-      final localOutlets = await getLocalOutlets();
-      final localOutletIds =
-          localOutlets.map((outlet) => outlet[_outletsIdColumnName]).toSet();
-
-      for (var outlet in apiOutlets) {
-        if (!localOutletIds.contains(outlet['id'])) {
-          outlet["image"] = getOutletImage(outlet["outlet_name"]);
-          await insertOutlet(outlet);
-        }
       }
-    } catch (e) {
-      print('syncOutletsFromApiWithFallback failed: $e');
-      // Don't throw again. Let it fail silently and fallback to local.
     }
+  } catch (e) {
+    print('syncOutletsFromApiWithFallback failed: $e');
   }
+}
+
 
 // Same function as you had earlier
   String getOutletImage(String outletName) {
@@ -178,12 +173,20 @@ class DatabaseService {
     }
   }
 
-  void debugPrintDatabase() async {
-  final localOutlets = await getLocalOutlets();
-  print('Current state of local database:');
-  for (var outlet in localOutlets) {
-    print(outlet);
-  }
-}
 
+  Future<void> clearOutlets() async {
+    final db = await database;
+    await db.delete(_outletsTableName);
+    print('Cleared all outlets from local database');
+  }
+
+  void debugPrintDatabase() async {
+    final localOutlets = await getLocalOutlets();
+    print('Current state of local database:');
+    for (var outlet in localOutlets) {
+      print(outlet);
+    }
+  }
+
+  
 }

@@ -17,7 +17,7 @@ final Map<String, WidgetBuilder> appRoutes = {
         phoneNumber: '',
       ),
   '/home': (context) =>  HomeScreen(),
-  '/profile': (context) => ProfilePage(),
+  '/profile': (context) => ProfilePage(userId: '',),
   '/urgentcalls': (context) => UrgentCallsPage(),
   '/vip': (context) => Vipscreen(),
 };

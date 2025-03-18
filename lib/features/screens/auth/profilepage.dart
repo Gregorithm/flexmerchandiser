@@ -1,11 +1,17 @@
 import 'package:flexmerchandiser/features/controllers/authcontroller.dart';
 import 'package:flexmerchandiser/features/screens/auth/loginscreen.dart';
+import 'package:flexmerchandiser/features/service/database_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ProfilePage extends StatelessWidget {
   final AuthController authController = Get.find<AuthController>();
+
+  // You need to pass the current logged-in user's ID
+  final String userId;
+
+  ProfilePage({required this.userId});
 
   @override
   Widget build(BuildContext context) {
@@ -15,9 +21,9 @@ class ProfilePage extends StatelessWidget {
     double fontSize = screenWidth * 0.08;
 
     return Scaffold(
-      backgroundColor: Color(0xFF337687),
+      backgroundColor: const Color(0xFF337687),
       appBar: AppBar(
-        backgroundColor: Color(0xFF337687),
+        backgroundColor: const Color(0xFF337687),
         title: Row(
           children: [
             CircleAvatar(
@@ -45,11 +51,11 @@ class ProfilePage extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: screenWidth * 0.10,
-                backgroundImage: AssetImage('assets/icon/userprofile.png'),
+                backgroundImage: const AssetImage('assets/icon/userprofile.png'),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Text(
-                "Goodbye Merchandiser,", // Replace with actual user data
+                "Goodbye Merchandiser,", // Optionally pass user name here
                 style: GoogleFonts.montserrat(
                   fontSize: 23,
                   fontWeight: FontWeight.w500,
@@ -90,15 +96,17 @@ class ProfilePage extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(height: 40.0),
+              const SizedBox(height: 40.0),
               ElevatedButton(
-                onPressed: () async {
-                  await authController.logoutUser();
-                  Get.to(() => LoginScreen());
+              onPressed: () async {
+                  await authController.logoutUser(userId);
+
+                  // Clear navigation stack and go to LoginScreen
+                  Get.offAll(() => LoginScreen());
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: Color(0xFF337687),
+                  foregroundColor: const Color(0xFF337687),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
@@ -110,7 +118,7 @@ class ProfilePage extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.logout,
                       color: Colors.redAccent,
                     ),

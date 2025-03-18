@@ -1,0 +1,2 @@
+/Users/gregorykago/StudioProjects/sqflite/flexmerchandiser/android/app/.cxx/Debug/b6h70465/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/gregorykago/StudioProjects/sqflite/flexmerchandiser/android/app/.cxx/Debug/b6h70465/armeabi-v7a/CMakeFiles/rebuild_cache.dir
