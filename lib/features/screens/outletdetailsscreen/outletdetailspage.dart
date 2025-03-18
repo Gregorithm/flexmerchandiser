@@ -86,6 +86,9 @@ void _filterCustomers() {
   bool hasNextPage = true;
   int currentPage = 1;
   final int itemsPerPage = 10;
+
+
+  
 Future<void> fetchOutletDetails() async {
   setState(() {
     isLoading = true;

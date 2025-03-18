@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flexmerchandiser/features/controllers/usercontroller.dart';
 import 'package:flexmerchandiser/features/screens/homescreen/monthlyonboardedcustomers.dart';
 import 'package:flexmerchandiser/features/screens/navigationbar/navbar.dart';
 import 'package:flexmerchandiser/features/screens/navigationbar/navigationbar.dart';
 import 'package:flexmerchandiser/features/screens/outletdetailsscreen/outletdetailspage.dart';
 import 'package:flexmerchandiser/features/screens/auth/profilepage.dart';
+import 'package:flexmerchandiser/features/service/database_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -43,57 +45,56 @@ class _HomeScreenState extends State<HomeScreen> {
     fetchOutlets();
   }
 
-  Future<void> fetchOutlets() async {
-    final String userId = userController.userId.value ?? '';
-    if (userId.isEmpty) {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
+Future<void> fetchOutlets() async {
+  final String userId = userController.userId.value ?? '';
+
+  if (userId.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("User ID is empty!")),
+    );
+    return;
+  }
+
+  setState(() {
+    isLoading = true;
+  });
+
+  try {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    bool isOnline = connectivityResult != ConnectivityResult.none;
+
+    if (isOnline) {
+      try {
+        await DatabaseService.instance.syncOutletsFromApi(userId);
+      } catch (e) {
+        print('Error syncing outlets from API: $e');
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User ID is empty!")),
-      );
-      return;
     }
 
-    final String url =
-        "https://bookings.flexpay.co.ke/api/merchandizer/outlets";
+    final localOutlets = await DatabaseService.instance.getLocalOutlets();
 
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"user_id": userId}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data["success"]) {
-          if (mounted) {
-            setState(() {
-              outlets = data["data"];
-              outletsCount = outlets.length;
-              isLoading = false;
-            });
-          }
-        } else {
-          throw Exception("Failed to load outlets.");
-        }
-      } else {
-        throw Exception("Server error: ${response.statusCode}");
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+    if (mounted) {
+      setState(() {
+        outlets = localOutlets;
+        outletsCount = outlets.length;
+      });
+    }
+ 
+    if (outlets.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error fetching outlets: $e")),
+        const SnackBar(content: Text("No outlets found. Please connect to the internet to sync data.")),
       );
+    }
+  } catch (e) {
+    print('Unexpected error fetching outlets: $e');
+  } finally {
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
+}
 
   String getOutletImage(String outletName) {
     if (outletName.startsWith("Quickmart")) {
@@ -282,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 : outlets.isEmpty
                     ? Center(
                         child: Text(
-                          "No outlets available.",
+                          "No data available. Connect to the internet to sync.",
                           style: GoogleFonts.montserrat(fontSize: 18, color: Colors.black),
                         ),
                       )
